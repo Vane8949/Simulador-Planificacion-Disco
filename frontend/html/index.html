@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú - Planificación de Disco</title>
+    <link rel="stylesheet" href="../css/style.css">    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-icon"><i class="fas fa-database"></i></div>
+            <div class="header-text">
+                <h1>Simulador de Planificación de Disco</h1>
+                <p>Selecciona un algoritmo para configurarlo, modificar su diseño y ver su simulación.</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-sliders-h"></i> Algoritmos de Planificación</h2>
+        </div>
+        <div class="algorithms-grid panel-body">
+            <!-- Estas tarjetas ahora son enlaces (<a>) que te llevan a las páginas individuales -->
+            <a href="fcfs.html" style="text-decoration: none;" class="alg-card fcfs"><strong>FCFS</strong><span>First Come<br>First Served</span></a>
+            <a href="sstf.html" style="text-decoration: none;" class="alg-card sstf"><strong>SSTF</strong><span>Shortest Seek<br>Time First</span></a>
+            <a href="scan.html" style="text-decoration: none;" class="alg-card scan"><strong>SCAN</strong><span>Elevador</span></a>
+            <a href="cscan.html" style="text-decoration: none;" class="alg-card cscan"><strong>C-SCAN</strong><span>Circular Scan</span></a>
+            <a href="look.html" style="text-decoration: none;" class="alg-card look"><strong>LOOK</strong><span>Look</span></a>
+            <a href="clook.html" style="text-decoration: none;" class="alg-card clook"><strong>C-LOOK</strong><span>Circular Look</span></a>
+        </div>
+    </div>
+</body>
+</html>

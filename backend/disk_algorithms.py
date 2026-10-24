@@ -1,3 +1,23 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import List
+
+# ==========================================
+# Configuración de las rutas de FastAPI
+# ==========================================
+router = APIRouter()
+
+class SimulationRequest(BaseModel):
+    cylinders: int
+    initial_pos: int
+    requests: List[int]
+    algorithm: str
+    direction: str = "up"
+    time_per_cylinder_ms: float = 1.0
+
+# ==========================================
+# Lógica de Planificación de Disco
+# ==========================================
 class DiskScheduler:
     def __init__(self, cylinders, initial_pos, requests, time_per_cylinder_ms=1.0):
         self.cylinders = cylinders
@@ -132,3 +152,34 @@ class DiskScheduler:
             "avg_wait_time": round(avg_wait_time_ms, 2),
             "total_requests": num_requests
         }
+
+# ==========================================
+# Endpoint de la API
+# ==========================================
+@router.post("/simulate")
+def run_simulation(data: SimulationRequest):
+    if data.initial_pos < 0 or data.initial_pos >= data.cylinders:
+        raise HTTPException(status_code=400, detail="La posición inicial está fuera de los límites del disco.")
+    
+    scheduler = DiskScheduler(
+        cylinders=data.cylinders,
+        initial_pos=data.initial_pos,
+        requests=data.requests,
+        time_per_cylinder_ms=data.time_per_cylinder_ms
+    )
+
+    algo = data.algorithm.upper()
+    if algo == "FCFS":
+        return scheduler.fcfs()
+    elif algo == "SSTF":
+        return scheduler.sstf()
+    elif algo == "SCAN":
+        return scheduler.scan(direction=data.direction)
+    elif algo == "C-SCAN":
+        return scheduler.c_scan(direction=data.direction)
+    elif algo == "LOOK":
+        return scheduler.look(direction=data.direction)
+    elif algo == "C-LOOK":
+        return scheduler.c_look(direction=data.direction)
+    else:
+        raise HTTPException(status_code=400, detail="Algoritmo no soportado.")

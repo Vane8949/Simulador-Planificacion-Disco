@@ -1,7 +1,6 @@
-# backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import disk  # Importamos nuestra nueva ruta de discos
+from backend import disk_algorithms
 
 app = FastAPI()
 
@@ -12,10 +11,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Aquí registrarás todas tus rutas en el futuro
-# Le ponemos un prefijo "/disk" para que no choque con otras cosas
-app.include_router(disk.router, prefix="/disk", tags=["Planificación de Disco"])
+@app.get("/")
+def read_root():
+    return {"mensaje": "¡El servidor está funcionando correctamente!"}
 
-# Si mañana agregas algoritmos de CPU, harías:
-# from routers import cpu
-# app.include_router(cpu.router, prefix="/cpu")
+app.include_router(disk_algorithms.router, prefix="/disk", tags=["Planificación de Disco"])

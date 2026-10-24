@@ -22,44 +22,74 @@ const colorMap = {
 const form = document.getElementById('simulation-form');
 if (form) {
     form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const cylinders = parseInt(document.getElementById('cylinders').value);
-        const initialPos = parseInt(document.getElementById('initialPos').value);
-        const timePerCylinder = parseFloat(document.getElementById('timePerCylinder').value);
-        const requestsStr = document.getElementById('requests').value;
-        const requests = requestsStr.split(',').map(num => parseInt(num.trim())).filter(n => !isNaN(n));
-
-        const payload = {
-            cylinders: cylinders,
-            initial_pos: initialPos,
-            time_per_cylinder: timePerCylinder,
-            requests: requests
-        };
+        e.preventDefault(); 
 
         try {
+            const elCylinders = document.getElementById('cylinders');
+            const elInitial = document.getElementById('initialPos');
+            const elTime = document.getElementById('timePerCylinder');
+            const elRequests = document.getElementById('requests');
+
+            if (!elCylinders || !elInitial || !elTime || !elRequests) {
+                alert("Error de interfaz: Falta un ID en el formulario HTML.");
+                return;
+            }
+
+            const cylinders = parseInt(elCylinders.value) || 200;
+            const initialPos = parseInt(elInitial.value) || 0;
+            const timePerCylinder = parseFloat(elTime.value) || 1.0;
+            const requests = elRequests.value.split(',').map(num => parseInt(num.trim())).filter(n => !isNaN(n));
+
+            let selectedAlg = "FCFS"; 
+            if (document.getElementById('fixed-algorithm')) {
+                selectedAlg = document.getElementById('fixed-algorithm').value;
+            } else if (document.getElementById('algorithm-select')) {
+                selectedAlg = document.getElementById('algorithm-select').value;
+            }
+
+            const payload = {
+                cylinders: cylinders,
+                initial_pos: initialPos,
+                time_per_cylinder_ms: timePerCylinder,
+                requests: requests,
+                algorithm: selectedAlg 
+            };
+
             const response = await fetch('http://127.0.0.1:8000/disk/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            simulationData = await response.json();
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Error del servidor:", errorData);
+                alert("El servidor rechazó los datos: " + (errorData.detail || "Verifica los valores ingresados."));
+                return;
+            }
+
+            const rawData = await response.json();
             
+            simulationData = {};
+            simulationData[rawData.algorithm] = rawData;
+            
+            // Si estas dos funciones no existen abajo, JavaScript colapsa
             renderTable(simulationData);
             
-            const maxPathLength = Math.max(...Object.values(simulationData).map(alg => alg.path.length));
-            canvas.height = Math.max(300, maxPathLength * 30 + 60); 
+            if (canvas) {
+                const maxPathLength = Math.max(...Object.values(simulationData).map(alg => alg.path.length));
+                canvas.height = Math.max(300, maxPathLength * 30 + 60); 
+            }
 
             initAnimation();
+            
         } catch (error) {
-            alert("Error al conectar con la API de Python. Asegúrate de que el servidor esté activo.");
-            console.error(error);
+            alert("Ocurrió un error. Revisa que el servidor de Python esté activo.");
+            console.error("Error técnico:", error);
         }
     });
 }
 
-// Botones de control (si existen en la página)
 const btnPlay = document.getElementById('btn-play');
 const btnPause = document.getElementById('btn-pause');
 const btnReset = document.getElementById('btn-reset');
@@ -73,7 +103,6 @@ if (algSelect) algSelect.addEventListener('change', () => { initAnimation(); });
 function initAnimation() {
     if (animationFrameId) cancelAnimationFrame(animationFrameId);
     
-    // Detectar en qué algoritmo estamos (Página fija o Select)
     let selectedAlg = "FCFS"; 
     if (document.getElementById('fixed-algorithm')) {
         selectedAlg = document.getElementById('fixed-algorithm').value;
@@ -102,6 +131,7 @@ function animate() {
         selectedAlg = document.getElementById('algorithm-select').value;
     }
 
+    if (!simulationData || !simulationData[selectedAlg]) return;
     const path = simulationData[selectedAlg].path;
 
     if (isPlaying && currentStepIndex < path.length - 1) {
@@ -129,7 +159,8 @@ function animate() {
 
 function drawDiskState(headPos, visitedPath, fullPath) {
     if (!ctx) return;
-    const totalCylinders = parseInt(document.getElementById('cylinders').value);
+    const elCylinders = document.getElementById('cylinders');
+    const totalCylinders = elCylinders ? parseInt(elCylinders.value) : 200;
     
     let selectedAlg = "FCFS";
     if (document.getElementById('fixed-algorithm')) {
@@ -157,11 +188,12 @@ function drawDiskState(headPos, visitedPath, fullPath) {
     const getY = (stepIndex) => paddingTop + (stepIndex * stepY);
 
     ctx.clearRect(0, 0, width, height);
-
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     
     let stepCyl = Math.ceil(totalCylinders / 10);
+    if (stepCyl === 0) stepCyl = 1;
+
     ctx.fillStyle = '#64748b';
     ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
@@ -258,20 +290,19 @@ function renderTable(data) {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    // Si estamos en una página específica, solo mostrar la tabla de ese algoritmo
     let selectedAlg = null;
     if (document.getElementById('fixed-algorithm')) {
         selectedAlg = document.getElementById('fixed-algorithm').value;
     }
 
     Object.keys(data).forEach(algKey => {
-        if (selectedAlg && algKey !== selectedAlg) return; // Filtrar tabla
+        if (selectedAlg && algKey !== selectedAlg) return; 
 
         const item = data[algKey];
         const bgColor = colorMap[algKey] || '#64748b';
         
         const row = `<tr>
-            <td><span class="badge" style="background-color: ${bgColor}">${item.algorithm}</span></td>
+            <td><span class="badge" style="background-color: ${bgColor}; padding: 5px 10px; color: white; border-radius: 4px; font-weight: bold;">${item.algorithm}</span></td>
             <td>${item.total_movement}</td>
             <td>${item.total_time_ms}</td>
             <td>${item.avg_seek_time.toFixed(2)}</td>
